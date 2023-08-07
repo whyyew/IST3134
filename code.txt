@@ -1,0 +1,91 @@
+Method -- Python
+#####	create table	#####
+hive > CREATE TABLE IF NOT EXISTS reviews (label int, title string, text string) 
+     > ROW FORMAT DELIMITED 
+     > FIELDS TERMINATED BY ','
+	 > LINES TERMINATED BY '\n';
+
+
+#####	insert data into created table	#####
+hive > LOAD DATA LOCAL INPATH '/home/hadoop/workspace/train.csv' INTO TABLE reviews;
+
+hive > SELECT count(*) FROM reviews WHERE label = 1;
+
+
+#####	export data to new csv file	#####
+hive > INSERT OVERWRITE LOCAL DIRECTORY './reviews'
+     > ROW FORMAT DELIMITED
+	 > FIELDS TERMINATED BY ','
+	 > SELECT title, text FROM reviews WHERE label = 1;
+	 
+
+#####	create py file for mrjob	#####
+nano mrjob_wordcount.py
+
+import re
+from mrjob.job import MRJob
+
+class MRWordCount(MRJob):
+    def clean_text(self, text):
+        # Define a list of stopwords
+        stopwords = ['the', 'and', 'in', 'of', 'to', 'a', 'is', 'that', 'it', 'with', 'as', 'for', 
+		             'i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you', 'your', 
+					 'yours', 'yourself', 'yourselves', 'he', 'him', 'his', 'himself', 'she', 'her', 
+					 'hers' ,'herself', 'it', 'its', 'itself', 'they', 'them', 'their', 'theirs', 
+					 'themselves', 'what', 'which', 'who', 'whom', 'this', 'these', 'those', 'am', 'are',
+					 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'having', 'do', 'does',
+					 'did', 'doing', 'an', 'but', 'if', 'or', 'because', 'until', 'while', 'at', 'by',
+					 'about', 'against', 'between', 'into', 'through', 'during', 'before', 'after', 'above',
+					 'below', 'from', 'up', 'down', 'on', 'out', 'off', 'over', 'under', 'should', 'not',
+					 'all', 'so', 'im', 'u', 'r', 'hasnt', 'havent', 'how', 'now', 'don', 'just', 'will',
+					 'can', 't', 's', 'very', 'too', 'than', 'same', 'own', 'only', 'no', 'nor', 'such',
+					 'some', 'other', 'most', 'more', 'few' 'each', 'both', 'any', 'when', 'why', 'where',
+					 'there', 'then', 'here', 'once', 'further', 'again', 'also', 'according', 'become',
+					 'became', 'becomes', 'becoming', 'beside', 'besides', 'cant', 'due', 'hadnt']
+
+        # Remove punctuation, numeric characters, convert to lowercase, and remove stopwords
+        cleaned_text = re.sub(r'[^\w\s]', '', text)
+        cleaned_text = re.sub(r'\d+', '', cleaned_text)
+        cleaned_text = cleaned_text.lower()
+        cleaned_text = ' '.join([word for word in cleaned_text.split() if word not in stopwords])
+        return cleaned_text
+
+    def mapper(self, _, line):
+        for word in line.split():
+            cleaned_word = self.clean_text(word)
+            if cleaned_word:
+                yield (cleaned_word, 1)
+
+    def reducer(self, word, counts):
+        yield (word, sum(counts))
+
+if __name__ == '__main__':
+    MRWordCount.run()
+	
+
+#####	run mrjob	#####
+python3 mrjob_wordcount.py -r hadoop /home/hadoop/workspace/reviews > reviewWordCount1.txt
+
+
+#####	show result		#####
+hive > select * from reviewWordCount order by count desc limit 100;
+##############################################################################################
+
+Method -- Java
+#####	change directory to workspace	#####
+$ cd workspace
+
+#####	copy reviews file to HDFS server to run mapreduce	#####
+$ hadoop fs -put reviews /user/hadoop
+
+#####	change directory to ~/workspace/wordcount/src to run MapReduce	#####
+$ cd ~/workspace/wordcount/src
+$ hadoop classpath
+$ javac -classpath `hadoop classpath` stubs/*.java
+$ jar cvf wc.jar stubs/*.class
+$ hadoop jar wc.jar stubs.WordCount reviews wordcounts
+
+#####	review and generate result in descending order	#####
+$ cd workspace
+$ hadoop fs -ls wordcounts
+$ hadoop fs -cat wordcounts/part-r-00000 | sort -k2,2nr > reviewWordCount2.txt
