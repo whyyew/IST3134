@@ -1,4 +1,4 @@
-Method -- Python
+Method -- Apache Hive
 #####	create table	#####
 hive > CREATE TABLE IF NOT EXISTS reviews (label int, title string, text string) 
      > ROW FORMAT DELIMITED 
@@ -31,7 +31,7 @@ class MRWordCount(MRJob):
         stopwords = ['the', 'and', 'in', 'of', 'to', 'a', 'is', 'that', 'it', 'with', 'as', 'for', 
 		             'i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you', 'your', 
 					 'yours', 'yourself', 'yourselves', 'he', 'him', 'his', 'himself', 'she', 'her', 
-					 'hers' ,'herself', 'it', 'its', 'itself', 'they', 'them', 'their', 'theirs', 
+					 'hers', 'herself', 'it', 'its', 'itself', 'they', 'them', 'their', 'theirs', 
 					 'themselves', 'what', 'which', 'who', 'whom', 'this', 'these', 'those', 'am', 'are',
 					 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'having', 'do', 'does',
 					 'did', 'doing', 'an', 'but', 'if', 'or', 'because', 'until', 'while', 'at', 'by',
@@ -71,7 +71,7 @@ python3 mrjob_wordcount.py -r hadoop /home/hadoop/workspace/reviews > reviewWord
 hive > select * from reviewWordCount order by count desc limit 100;
 ##############################################################################################
 
-Method -- Java
+Method -- Hadoop MapReduce
 #####	change directory to workspace	#####
 $ cd workspace
 
